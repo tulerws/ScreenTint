@@ -20,11 +20,11 @@ brilho dos monitores por DDC/CI. Escrito em Rust, interface em [Slint](https://s
 
 ## Backends
 
-| Sistema | Tom da tela | Brilho do monitor | Estado |
-|---------|-------------|-------------------|--------|
-| Windows | `MagSetFullscreenColorEffect` (Magnification API) | `dxva2` (DDC/CI) e `\.\LCD` (painel de notebook) | testado |
-| macOS | `CGSetDisplayTransferByFormula` | `DisplayServices` (tela interna, carregado em runtime) e [`m1ddc`](https://github.com/waydabber/m1ddc) (externos) | não testado |
-| Linux (X11) | rampas de gamma do RandR | `/sys/class/backlight` e [`ddcutil`](https://www.ddcutil.com/) | não testado |
+| Sistema | Tom da tela | Brilho do monitor |
+|---------|-------------|-------------------|
+| Windows | `MagSetFullscreenColorEffect` (Magnification API) | `dxva2` (DDC/CI) e `\.\LCD` (painel de notebook) |
+| macOS | `CGSetDisplayTransferByFormula` | `DisplayServices` (tela interna, carregado em runtime) e [`m1ddc`](https://github.com/waydabber/m1ddc) (externos) |
+| Linux (X11) | rampas de gamma do RandR | `/sys/class/backlight` e [`ddcutil`](https://www.ddcutil.com/) |
 
 Limitações:
 
