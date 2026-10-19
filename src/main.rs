@@ -140,6 +140,9 @@ fn sync_ui(c: &Ctx) {
     p.set_t1_text(fmt_time(s.t1).into());
     p.set_t2_text(fmt_time(s.t2).into());
     p.set_autostart(platform::autostart_get());
+    let tray_pin = platform::tray_pin_get();
+    p.set_can_pin_tray(tray_pin.is_some());
+    p.set_tray_pinned(tray_pin.unwrap_or(false));
     p.set_link(s.link);
     p.set_pinned(s.pinned);
     p.set_master(st.master);
@@ -220,10 +223,47 @@ fn show_panel(c: &Rc<Ctx>) {
         }
     }
     sync_ui(c);
+    let already_open = p.window().is_visible();
     c.st.borrow_mut().placed = (0, 0);
+    if !already_open {
+        // park the panel outside its (transparent) window; it slides in once the window is up
+        p.set_open(false);
+    }
     place_panel(&p);
     let _ = p.show();
-    // the real size is only known once the window exists; `poll` re-anchors when it changes
+    let _ = p.window().with_winit_window(|w| {
+        // ask for focus so the focus-lost event can close the panel; the OS may refuse, which is why
+        // `poll` also watches for clicks outside
+        w.focus_window();
+        // re-assert the topmost position, in case another topmost window was raised meanwhile
+        w.set_window_level(winit::window::WindowLevel::AlwaysOnTop);
+        #[cfg(windows)]
+        {
+            use winit::platform::windows::WindowExtWindows;
+            w.set_skip_taskbar(true);
+        }
+    });
+    if !already_open {
+        let weak = p.as_weak();
+        // the window is moved by `poll` once its final size is known, so wait a moment before sliding in.
+        // Moving the window itself instead breaks the software renderer (the panel renders black).
+        Timer::single_shot(Duration::from_millis(60), move || {
+            if let Some(p) = weak.upgrade() {
+                p.set_open(true);
+            }
+        });
+    }
+}
+
+/// Hides the panel and remembers when, so the tray click that caused it does not reopen it.
+fn hide_panel(c: &Rc<Ctx>) {
+    if let Some(p) = c.panel.upgrade() {
+        if p.window().is_visible() {
+            c.st.borrow_mut().last_hide = Some(Instant::now());
+            p.set_open(false);
+            let _ = p.hide();
+        }
+    }
 }
 
 /// Keeps the panel's bottom/right edge next to the tray.
@@ -236,7 +276,7 @@ fn place_panel(p: &Panel) {
 fn toggle_panel(c: &Rc<Ctx>) {
     let Some(p) = c.panel.upgrade() else { return };
     if p.window().is_visible() {
-        let _ = p.hide();
+        hide_panel(c);
         return;
     }
     let recently_hidden = c.st.borrow().last_hide.is_some_and(|t| t.elapsed() < Duration::from_millis(250));
@@ -310,8 +350,11 @@ fn poll(c: &Rc<Ctx>, scans: &Receiver<Vec<platform::MonitorInfo>>, keys: &[HotKe
         sync_ui(c);
     }
     if let Some(p) = c.panel.upgrade() {
+        let (pos, sz) = (p.window().position(), p.window().size());
+        // sampled on every tick, also while hidden, so the button edge detection stays in sync
+        let outside = platform::click_outside(pos.x, pos.y, sz.width as i32, sz.height as i32);
         if p.window().is_visible() {
-            let sz = p.window().size();
+            let pinned = c.st.borrow().s.pinned;
             let changed = {
                 let mut st = c.st.borrow_mut();
                 let ch = st.placed != (sz.width, sz.height);
@@ -320,6 +363,10 @@ fn poll(c: &Rc<Ctx>, scans: &Receiver<Vec<platform::MonitorInfo>>, keys: &[HotKe
             };
             if changed {
                 place_panel(&p);
+            }
+            // click outside closes an unpinned panel, even if it never got focus
+            if outside && !pinned {
+                hide_panel(c);
             }
         }
     }
@@ -460,6 +507,11 @@ fn main() -> Result<(), slint::PlatformError> {
             changed(&c);
         });
         let c = ctx.clone();
+        panel.on_tray_pin_toggled(move || {
+            platform::tray_pin_set(!platform::tray_pin_get().unwrap_or(false));
+            changed(&c);
+        });
+        let c = ctx.clone();
         panel.on_link_toggled(move || {
             {
                 let mut st = c.st.borrow_mut();
@@ -484,12 +536,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 if c.st.borrow().s.pinned {
                     return EventResult::Propagate;
                 }
-                if let Some(p) = c.panel.upgrade() {
-                    if p.window().is_visible() {
-                        c.st.borrow_mut().last_hide = Some(Instant::now());
-                        let _ = p.hide();
-                    }
-                }
+                hide_panel(&c);
             }
             EventResult::Propagate
         });
@@ -535,7 +582,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let poll_timer = Timer::default();
     {
         let c = ctx.clone();
-        poll_timer.start(TimerMode::Repeated, Duration::from_millis(50), move || poll(&c, &res_rx, &keys));
+        poll_timer.start(TimerMode::Repeated, Duration::from_millis(30), move || poll(&c, &res_rx, &keys));
     }
     let sched_timer = Timer::default();
     {

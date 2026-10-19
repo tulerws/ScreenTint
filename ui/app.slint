@@ -266,6 +266,10 @@ export component Panel inherits Window {
     in-out property <string> t1-text;
     in-out property <string> t2-text;
     in-out property <bool> autostart;
+    // false parks the panel outside the window, true slides it in
+    in-out property <bool> open: true;
+    in-out property <bool> can-pin-tray;
+    in-out property <bool> tray-pinned;
     in-out property <bool> link;
     in-out property <float> master;
     in-out property <bool> scanning;
@@ -283,6 +287,7 @@ export component Panel inherits Window {
     callback sched-toggled();
     callback step-time(int, int);
     callback autostart-toggled();
+    callback tray-pin-toggled();
     callback link-toggled();
     callback master-edited(float);
     callback monitor-edited(int, float);
@@ -298,6 +303,8 @@ export component Panel inherits Window {
     default-font-size: 13px;
 
     Rectangle {
+        x: root.open ? 0px : root.width;
+        animate x { duration: 240ms; easing: cubic-bezier(0.215, 0.61, 0.355, 1); }
         width: root.width;
         height: root.height;
         background: Pal.bg;
@@ -451,10 +458,10 @@ export component Panel inherits Window {
                     }
                 }
                 if root.monitors.length == 0: Text {
-                    text: root.scanning ? "Procurando monitores…" : "Nenhum monitor com controle de brilho (DDC/CI) encontrado.";
+                    text: root.scanning ? "Procurando monitores…" : "Nenhum monitor com controle de brilho.";
                     color: Pal.muted;
                     font-size: 12px;
-                    wrap: word-wrap;
+                    overflow: elide;
                 }
                 if root.monitors.length > 0 && (root.link || root.monitors.length == 1): VerticalLayout {
                     spacing: 4px;
@@ -526,6 +533,25 @@ export component Panel inherits Window {
                             checked: root.autostart;
                             accent: root.accent;
                             toggled => { root.autostart-toggled(); }
+                        }
+                    }
+                }
+                if root.can-pin-tray: HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Ícone sempre visível na barra";
+                        color: Pal.text;
+                        font-size: 13px;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                    Rectangle { }
+                    VerticalLayout {
+                        alignment: center;
+                        Toggle {
+                            checked: root.tray-pinned;
+                            accent: root.accent;
+                            toggled => { root.tray-pin-toggled(); }
                         }
                     }
                 }
