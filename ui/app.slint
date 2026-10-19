@@ -1,0 +1,523 @@
+import "fonts/Inter-Regular.ttf";
+import "fonts/Inter-Medium.ttf";
+import "fonts/Inter-SemiBold.ttf";
+
+export struct MonitorRow { name: string, value: float }
+
+global Pal {
+    out property <color> bg: #14161b;
+    out property <color> card: #1c1f26;
+    out property <color> line: #2a2e38;
+    out property <color> text: #eceef3;
+    out property <color> muted: #8b92a1;
+    out property <color> off: #3a3f4c;
+}
+
+component Slide inherits Rectangle {
+    in property <float> value;
+    in property <float> minimum: 0;
+    in property <float> maximum: 100;
+    in property <brush> track: Pal.off;
+    in property <bool> filled: true;
+    in property <color> accent: #f5a04b;
+    callback edited(float);
+
+    height: 26px;
+    property <length> usable: root.width - 20px;
+    property <float> frac: (root.value - root.minimum) / (root.maximum - root.minimum);
+
+    pure function pick(x: length) -> float {
+        return Math.clamp(root.minimum + (x - 10px) / root.usable * (root.maximum - root.minimum), root.minimum, root.maximum);
+    }
+
+    Rectangle {
+        y: (root.height - 8px) / 2;
+        height: 8px;
+        border-radius: 4px;
+        background: root.track;
+        if root.filled: Rectangle {
+            x: 0px;
+            width: 10px + root.frac * root.usable;
+            border-radius: 4px;
+            background: root.accent;
+        }
+    }
+    Rectangle {
+        x: root.frac * root.usable;
+        y: (root.height - 20px) / 2;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: #ffffff;
+        drop-shadow-blur: 5px;
+        drop-shadow-color: #00000090;
+        drop-shadow-offset-y: 1px;
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if (e.button == PointerEventButton.left && e.kind == PointerEventKind.down) {
+                root.edited(root.pick(self.mouse-x));
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                root.edited(root.pick(self.mouse-x));
+            }
+        }
+    }
+}
+
+component Toggle inherits Rectangle {
+    in property <bool> checked;
+    in property <color> accent: #f5a04b;
+    callback toggled();
+
+    width: 40px;
+    height: 24px;
+    border-radius: 12px;
+    background: root.checked ? root.accent : Pal.off;
+    animate background { duration: 150ms; }
+    Rectangle {
+        x: root.checked ? 18px : 2px;
+        y: 2px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: #ffffff;
+        animate x { duration: 150ms; easing: ease-out; }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.toggled(); }
+    }
+}
+
+component Chip inherits Rectangle {
+    in property <string> text;
+    in property <color> dot;
+    callback clicked();
+
+    height: 34px;
+    border-radius: 10px;
+    background: ta.has-hover ? #272b35 : #20232b;
+    border-width: 1px;
+    border-color: ta.has-hover ? root.dot : Pal.line;
+    animate border-color { duration: 120ms; }
+    HorizontalLayout {
+        alignment: center;
+        spacing: 7px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 10px;
+                height: 10px;
+                border-radius: 5px;
+                background: root.dot;
+            }
+        }
+        Text {
+            text: root.text;
+            color: Pal.text;
+            font-size: 12px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component Segment inherits Rectangle {
+    in property <string> left;
+    in property <string> right;
+    in property <bool> right-selected;
+    in property <color> accent: #f5a04b;
+    callback chose(bool);
+
+    height: 32px;
+    border-radius: 10px;
+    background: #20232b;
+    Rectangle {
+        x: root.right-selected ? parent.width / 2 : 0px;
+        width: parent.width / 2;
+        height: parent.height;
+        border-radius: 10px;
+        background: Pal.off;
+        animate x { duration: 150ms; easing: ease-out; }
+    }
+    HorizontalLayout {
+        for name[i] in [root.left, root.right]: Rectangle {
+            Text {
+                text: name;
+                font-size: 12px;
+                font-weight: 500;
+                color: (i == 1) == root.right-selected ? Pal.text : Pal.muted;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.chose(i == 1); }
+            }
+        }
+    }
+}
+
+component Card inherits Rectangle {
+    background: Pal.card;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Pal.line;
+    VerticalLayout {
+        padding: 14px;
+        spacing: 10px;
+        @children
+    }
+}
+
+component Heading inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> value;
+    Text {
+        text: root.title;
+        color: Pal.muted;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    Text {
+        text: root.value;
+        color: Pal.text;
+        font-size: 12px;
+        font-weight: 500;
+        horizontal-alignment: right;
+    }
+}
+
+component Stepper inherits Rectangle {
+    in property <string> text;
+    callback step(int);
+    height: 30px;
+    border-radius: 8px;
+    background: #20232b;
+    border-width: 1px;
+    border-color: Pal.line;
+    HorizontalLayout {
+        padding-left: 4px;
+        padding-right: 4px;
+        Rectangle {
+            width: 24px;
+            Text { text: "–"; color: Pal.muted; font-size: 14px; }
+            TouchArea { mouse-cursor: pointer; clicked => { root.step(-15); } }
+        }
+        Text {
+            text: root.text;
+            color: Pal.text;
+            font-size: 13px;
+            font-weight: 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            width: 24px;
+            Text { text: "+"; color: Pal.muted; font-size: 14px; }
+            TouchArea { mouse-cursor: pointer; clicked => { root.step(15); } }
+        }
+    }
+}
+
+export component Panel inherits Window {
+    in-out property <bool> enabled;
+    in-out property <bool> color-mode;
+    in-out property <float> temp;
+    in-out property <float> hue;
+    in-out property <float> sat;
+    in-out property <float> strength;
+    in-out property <float> bright;
+    in-out property <color> accent: #f5a04b;
+    in-out property <color> hue-color: #ff8c00;
+    in-out property <string> status;
+    in-out property <bool> sched;
+    in-out property <string> t1-text;
+    in-out property <string> t2-text;
+    in-out property <bool> autostart;
+    in-out property <bool> link;
+    in-out property <float> master;
+    in-out property <bool> scanning;
+    in-out property <[MonitorRow]> monitors;
+
+    callback toggle-enabled();
+    callback preset(int);
+    callback set-mode(bool);
+    callback temp-edited(float);
+    callback hue-edited(float);
+    callback sat-edited(float);
+    callback strength-edited(float);
+    callback bright-edited(float);
+    callback sched-toggled();
+    callback step-time(int, int);
+    callback autostart-toggled();
+    callback link-toggled();
+    callback master-edited(float);
+    callback monitor-edited(int, float);
+
+    width: 360px;
+    height: col.preferred-height + 16px;
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    default-font-family: "Inter";
+    default-font-size: 13px;
+
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        background: Pal.bg;
+        border-radius: 18px;
+        border-width: 1px;
+        border-color: Pal.line;
+
+        col := VerticalLayout {
+            padding: 16px;
+            spacing: 10px;
+
+            // header
+            HorizontalLayout {
+                spacing: 10px;
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    Text {
+                        text: "ScreenTint";
+                        color: Pal.text;
+                        font-size: 17px;
+                        font-weight: 600;
+                    }
+                    Text {
+                        text: root.status;
+                        color: Pal.muted;
+                        font-size: 12px;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Toggle {
+                        checked: root.enabled;
+                        accent: root.accent;
+                        toggled => { root.toggle-enabled(); }
+                    }
+                }
+            }
+
+            // colour
+            Card {
+                HorizontalLayout {
+                    spacing: 8px;
+                    Chip { text: "Quente"; dot: #ffb066; clicked => { root.preset(0); } }
+                    Chip { text: "Noite"; dot: #ff7a2e; clicked => { root.preset(1); } }
+                    Chip { text: "Escuro"; dot: #7b8294; clicked => { root.preset(2); } }
+                }
+                Segment {
+                    left: "Temperatura";
+                    right: "Cor livre";
+                    right-selected: root.color-mode;
+                    accent: root.accent;
+                    chose(r) => { root.set-mode(r); }
+                }
+                if !root.color-mode: VerticalLayout {
+                    spacing: 4px;
+                    Heading { title: "Temperatura"; value: "\{Math.round(root.temp)} K"; }
+                    Slide {
+                        value: root.temp;
+                        minimum: 1200;
+                        maximum: 6500;
+                        filled: false;
+                        track: @linear-gradient(90deg, #ff8a12 0%, #ffb35c 30%, #ffd9a8 62%, #ffffff 100%);
+                        edited(v) => { root.temp-edited(v); }
+                    }
+                }
+                if root.color-mode: VerticalLayout {
+                    spacing: 4px;
+                    Heading { title: "Matiz"; value: "\{Math.round(root.hue)}°"; }
+                    Slide {
+                        value: root.hue;
+                        minimum: 0;
+                        maximum: 360;
+                        filled: false;
+                        track: @linear-gradient(90deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+                        edited(v) => { root.hue-edited(v); }
+                    }
+                    Heading { title: "Saturação"; value: "\{Math.round(root.sat)}%"; }
+                    Slide {
+                        value: root.sat;
+                        filled: false;
+                        track: @linear-gradient(90deg, #ffffff 0%, root.hue-color 100%);
+                        edited(v) => { root.sat-edited(v); }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 4px;
+                    Heading { title: "Intensidade"; value: "\{Math.round(root.strength)}%"; }
+                    Slide {
+                        value: root.strength;
+                        accent: root.accent;
+                        edited(v) => { root.strength-edited(v); }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 4px;
+                    Heading { title: "Brilho da tela (filtro)"; value: "\{Math.round(root.bright)}%"; }
+                    Slide {
+                        value: root.bright;
+                        minimum: 10;
+                        accent: root.accent;
+                        edited(v) => { root.bright-edited(v); }
+                    }
+                }
+            }
+
+            // monitors
+            Card {
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Brilho do monitor (hardware)";
+                        color: Pal.text;
+                        font-size: 13px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                    if root.monitors.length > 1: HorizontalLayout {
+                        alignment: end;
+                        spacing: 8px;
+                        Text {
+                            text: "Vincular";
+                            color: Pal.muted;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            Toggle {
+                                checked: root.link;
+                                accent: root.accent;
+                                toggled => { root.link-toggled(); }
+                            }
+                        }
+                    }
+                }
+                if root.monitors.length == 0: Text {
+                    text: root.scanning ? "Procurando monitores…" : "Nenhum monitor com controle de brilho (DDC/CI) encontrado.";
+                    color: Pal.muted;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                }
+                if root.monitors.length > 0 && (root.link || root.monitors.length == 1): VerticalLayout {
+                    spacing: 4px;
+                    Heading {
+                        title: root.monitors.length == 1 ? root.monitors[0].name : "Todos (\{root.monitors.length})";
+                        value: "\{Math.round(root.master)}%";
+                    }
+                    Slide {
+                        value: root.master;
+                        accent: root.accent;
+                        edited(v) => { root.master-edited(v); }
+                    }
+                }
+                if root.monitors.length > 1 && !root.link: VerticalLayout {
+                    spacing: 8px;
+                    for m[i] in root.monitors: VerticalLayout {
+                        spacing: 4px;
+                        Heading { title: m.name; value: "\{Math.round(m.value)}%"; }
+                        Slide {
+                            value: m.value;
+                            accent: root.accent;
+                            edited(v) => { root.monitor-edited(i, v); }
+                        }
+                    }
+                }
+            }
+
+            // schedule + system
+            Card {
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Agendar";
+                        color: Pal.text;
+                        font-size: 13px;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                    if root.sched: HorizontalLayout {
+                        spacing: 6px;
+                        alignment: end;
+                        Stepper { width: 82px; text: root.t1-text; step(d) => { root.step-time(0, d); } }
+                        Text { text: "até"; color: Pal.muted; font-size: 12px; vertical-alignment: center; }
+                        Stepper { width: 82px; text: root.t2-text; step(d) => { root.step-time(1, d); } }
+                    }
+                    if !root.sched: Rectangle { }
+                    VerticalLayout {
+                        alignment: center;
+                        Toggle {
+                            checked: root.sched;
+                            accent: root.accent;
+                            toggled => { root.sched-toggled(); }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Iniciar com o sistema";
+                        color: Pal.text;
+                        font-size: 13px;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                    Rectangle { }
+                    VerticalLayout {
+                        alignment: center;
+                        Toggle {
+                            checked: root.autostart;
+                            accent: root.accent;
+                            toggled => { root.autostart-toggled(); }
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: "Ctrl+Alt+T liga/desliga  ·  Ctrl+Alt+↑ ↓ brilho";
+                color: Pal.muted;
+                font-size: 11px;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
+
+export component Tray inherits SystemTrayIcon {
+    in property <string> toggle-title: "Desativar";
+    in property <image> tray-icon;
+    in property <string> tip: "ScreenTint";
+    callback activated();
+    callback toggle();
+    callback preset(int);
+    callback open();
+    callback quit();
+
+    icon: root.tray-icon;
+    tooltip: root.tip;
+    clicked => { root.activated(); }
+    Menu {
+        MenuItem { title: root.toggle-title; activated => { root.toggle(); } }
+        MenuSeparator { }
+        MenuItem { title: "Quente"; activated => { root.preset(0); } }
+        MenuItem { title: "Noite"; activated => { root.preset(1); } }
+        MenuItem { title: "Escuro"; activated => { root.preset(2); } }
+        MenuSeparator { }
+        MenuItem { title: "Abrir painel"; activated => { root.open(); } }
+        MenuItem { title: "Sair"; activated => { root.quit(); } }
+    }
+}
