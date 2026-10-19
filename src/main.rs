@@ -141,6 +141,7 @@ fn sync_ui(c: &Ctx) {
     p.set_t2_text(fmt_time(s.t2).into());
     p.set_autostart(platform::autostart_get());
     p.set_link(s.link);
+    p.set_pinned(s.pinned);
     p.set_master(st.master);
     p.set_scanning(st.scanning);
     let rows: Vec<MonitorRow> = st
@@ -158,6 +159,7 @@ fn sync_tray(c: &Ctx) {
     t.set_tray_icon(make_icon(&s));
     t.set_tip(format!("ScreenTint — {}", status_text(&s)).into());
     t.set_toggle_title(if s.enabled { "Desativar" } else { "Ativar" }.into());
+    t.set_pin_title(if s.pinned { "Soltar painel" } else { "Fixar painel" }.into());
 }
 
 /// Call after any change to the settings.
@@ -391,6 +393,8 @@ fn main() -> Result<(), slint::PlatformError> {
         let c = ctx.clone();
         panel.on_toggle_enabled(move || update(&c, |s| s.enabled = !s.enabled));
         let c = ctx.clone();
+        panel.on_toggle_pin(move || update(&c, |s| s.pinned = !s.pinned));
+        let c = ctx.clone();
         panel.on_preset(move |i| apply_preset(&c, i));
         let c = ctx.clone();
         panel.on_set_mode(move |color| {
@@ -477,6 +481,9 @@ fn main() -> Result<(), slint::PlatformError> {
         let c = ctx.clone();
         panel.window().on_winit_window_event(move |_, ev| {
             if let winit::event::WindowEvent::Focused(false) = ev {
+                if c.st.borrow().s.pinned {
+                    return EventResult::Propagate;
+                }
                 if let Some(p) = c.panel.upgrade() {
                     if p.window().is_visible() {
                         c.st.borrow_mut().last_hide = Some(Instant::now());
@@ -494,6 +501,13 @@ fn main() -> Result<(), slint::PlatformError> {
         tray.on_activated(move || toggle_panel(&c));
         let c = ctx.clone();
         tray.on_toggle(move || update(&c, |s| s.enabled = !s.enabled));
+        let c = ctx.clone();
+        tray.on_pin(move || {
+            update(&c, |s| s.pinned = !s.pinned);
+            if c.st.borrow().s.pinned {
+                show_panel(&c);
+            }
+        });
         let c = ctx.clone();
         tray.on_preset(move |i| apply_preset(&c, i));
         let c = ctx.clone();
@@ -545,6 +559,10 @@ fn main() -> Result<(), slint::PlatformError> {
     sync_ui(&ctx);
     changed(&ctx);
     tray.show()?;
+    if settings.pinned {
+        let c = ctx.clone();
+        Timer::single_shot(Duration::from_millis(400), move || show_panel(&c));
+    }
     slint::run_event_loop_until_quit()?;
 
     model::save(&ctx.st.borrow().s);

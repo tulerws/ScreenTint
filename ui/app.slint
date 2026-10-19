@@ -93,6 +93,30 @@ component Toggle inherits Rectangle {
     }
 }
 
+component PinButton inherits Rectangle {
+    in property <bool> pinned;
+    in property <color> accent: #f5a04b;
+    callback clicked();
+
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: root.pinned ? #ffffff14 : (ta.has-hover ? #ffffff0c : transparent);
+    animate background { duration: 120ms; }
+    Image {
+        source: @image-url("../assets/pin.svg");
+        width: 16px;
+        height: 16px;
+        colorize: root.pinned ? root.accent : Pal.muted;
+        transform-rotation: root.pinned ? 0deg : 45deg;
+        animate transform-rotation { duration: 150ms; easing: ease-out; }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
 component Chip inherits Rectangle {
     in property <string> text;
     in property <color> dot;
@@ -228,6 +252,7 @@ component Stepper inherits Rectangle {
 
 export component Panel inherits Window {
     in-out property <bool> enabled;
+    in-out property <bool> pinned;
     in-out property <bool> color-mode;
     in-out property <float> temp;
     in-out property <float> hue;
@@ -247,6 +272,7 @@ export component Panel inherits Window {
     in-out property <[MonitorRow]> monitors;
 
     callback toggle-enabled();
+    callback toggle-pin();
     callback preset(int);
     callback set-mode(bool);
     callback temp-edited(float);
@@ -307,6 +333,14 @@ export component Panel inherits Window {
                         text: root.status;
                         color: Pal.muted;
                         font-size: 12px;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    PinButton {
+                        pinned: root.pinned;
+                        accent: root.accent;
+                        clicked => { root.toggle-pin(); }
                     }
                 }
                 VerticalLayout {
@@ -509,10 +543,12 @@ export component Panel inherits Window {
 
 export component Tray inherits SystemTrayIcon {
     in property <string> toggle-title: "Desativar";
+    in property <string> pin-title: "Fixar painel";
     in property <image> tray-icon;
     in property <string> tip: "ScreenTint";
     callback activated();
     callback toggle();
+    callback pin();
     callback preset(int);
     callback open();
     callback quit();
@@ -527,6 +563,7 @@ export component Tray inherits SystemTrayIcon {
         MenuItem { title: "Noite"; activated => { root.preset(1); } }
         MenuItem { title: "Escuro"; activated => { root.preset(2); } }
         MenuSeparator { }
+        MenuItem { title: root.pin-title; activated => { root.pin(); } }
         MenuItem { title: "Abrir painel"; activated => { root.open(); } }
         MenuItem { title: "Sair"; activated => { root.quit(); } }
     }

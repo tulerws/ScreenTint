@@ -21,6 +21,7 @@ pub struct Settings {
     pub t1: i32,
     pub t2: i32,
     pub link: bool,
+    pub pinned: bool,
 }
 
 impl Default for Settings {
@@ -37,6 +38,7 @@ impl Default for Settings {
             t1: 21 * 60,
             t2: 7 * 60,
             link: true,
+            pinned: false,
         }
     }
 }
@@ -160,6 +162,7 @@ pub fn load() -> Settings {
             "t1" => s.t1 = n.clamp(0, 1439),
             "t2" => s.t2 = n.clamp(0, 1439),
             "link" => s.link = n != 0,
+            "pinned" => s.pinned = n != 0,
             _ => {}
         }
     }
@@ -168,9 +171,9 @@ pub fn load() -> Settings {
 
 pub fn save(s: &Settings) {
     let text = format!(
-        "enabled={}\ncolor_mode={}\ntemp={}\nhue={}\nsat={}\nstrength={}\nbright={}\nsched={}\nt1={}\nt2={}\nlink={}\n",
+        "enabled={}\ncolor_mode={}\ntemp={}\nhue={}\nsat={}\nstrength={}\nbright={}\nsched={}\nt1={}\nt2={}\nlink={}\npinned={}\n",
         s.enabled as i32, s.color_mode as i32, s.temp, s.hue, s.sat, s.strength, s.bright,
-        s.sched as i32, s.t1, s.t2, s.link as i32
+        s.sched as i32, s.t1, s.t2, s.link as i32, s.pinned as i32
     );
     let _ = std::fs::create_dir_all(config_dir());
     let _ = std::fs::write(settings_path(), text);
