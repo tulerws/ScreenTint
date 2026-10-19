@@ -1,0 +1,39 @@
+[package]
+name = "screentint"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+slint = { version = "1.18", default-features = false, features = [
+  "std", "compat-1-2", "compat-1-18", "backend-winit", "renderer-software",
+  "system-tray", "unstable-winit-030",
+] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+global-hotkey = "0.9"
+
+[target.'cfg(windows)'.dependencies.windows]
+version = "0.61"
+features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_Registry",
+  "Win32_Devices_Display",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_Magnification",
+  "Win32_UI_WindowsAndMessaging",
+]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13", features = ["randr"] }
+
+[build-dependencies]
+slint-build = "1.18"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
