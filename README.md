@@ -52,6 +52,26 @@ Arquivo `settings.ini` (formato `chave=valor`) em:
 Início com o sistema: chave `Run` do registro (Windows), LaunchAgent (macOS) ou entrada em
 `~/.config/autostart` (Linux).
 
+## Instalação
+
+Os pacotes são gerados pelo workflow `.github/workflows/release.yml` e publicados na página de Releases a cada tag `vX.Y.Z`.
+
+| Sistema | Arquivo | Observações |
+|---------|---------|-------------|
+| Windows | `ScreenTint-X.Y.Z-windows-x64-setup.exe` | Instalação por usuário (sem admin) em `%LOCALAPPDATA%\Programs`, atalho no Menu Iniciar, desinstalador e opção de iniciar com o Windows. Também há `...-portable.zip` com só o `.exe`. |
+| macOS | `ScreenTint-X.Y.Z-macos-universal.dmg` | `.app` universal (Apple Silicon e Intel), sem ícone no Dock (`LSUIElement`). |
+| Linux | `ScreenTint-X.Y.Z-linux-amd64.deb` ou `...-linux-x86_64.tar.gz` | O `.deb` recomenda `ddcutil`. O `.tar.gz` traz um `install.sh` que instala em `~/.local`. |
+
+Os binários não são assinados:
+
+- Windows: o SmartScreen pode avisar ("editor desconhecido"). Antivírus com análise comportamental podem sinalizar
+  um executável não assinado que registra início automático.
+- macOS: a assinatura é ad hoc, sem Developer ID nem notarização. Na primeira abertura, use clique direito > Abrir,
+  ou `xattr -dr com.apple.quarantine /Applications/ScreenTint.app`.
+
+O instalador do Windows foi testado (instalação, desinstalação e remoção da chave de início automático).
+Os pacotes de macOS e Linux são gerados no CI e não foram testados em hardware.
+
 ## Compilar
 
 Requer Rust estável.
