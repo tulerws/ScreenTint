@@ -189,3 +189,15 @@ pub fn autostart_set(on: bool) {
         let _ = std::fs::remove_file(p);
     }
 }
+
+/// Click-outside detection needs a global pointer grab; on X11 the focus-lost event is used instead.
+pub fn click_outside(_x: i32, _y: i32, _w: i32, _h: i32) -> bool {
+    false
+}
+
+/// Not applicable: no per-icon visibility switch outside Windows.
+pub fn tray_pin_get() -> Option<bool> {
+    None
+}
+
+pub fn tray_pin_set(_on: bool) {}
