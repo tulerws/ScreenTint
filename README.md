@@ -66,6 +66,8 @@ Os binários não são assinados:
 
 - Windows: o SmartScreen pode avisar ("editor desconhecido"). Antivírus com análise comportamental podem sinalizar
   um executável não assinado que registra início automático.
+- Cada Release inclui `SHA256SUMS.txt` para conferir os arquivos baixados. Um falso positivo pode ser
+  reportado à Microsoft em <https://www.microsoft.com/wdsi/filesubmission>.
 - macOS: a assinatura é ad hoc, sem Developer ID nem notarização. Na primeira abertura, use clique direito > Abrir,
   ou `xattr -dr com.apple.quarantine /Applications/ScreenTint.app`.
 
