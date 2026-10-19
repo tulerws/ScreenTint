@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ScreenTint
+Comment=Screen tint, dimming and monitor brightness
+Exec=screentint
+Icon=screentint
+Terminal=false
+Categories=Utility;

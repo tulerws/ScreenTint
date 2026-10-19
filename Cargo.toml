@@ -46,3 +46,18 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[package.metadata.deb]
+name = "screentint"
+maintainer = "tulerws <tulerws@users.noreply.github.com>"
+section = "utils"
+priority = "optional"
+depends = "$auto"
+recommends = "ddcutil"
+extended-description = "Applies a per-channel colour multiplier to the whole screen (RandR gamma on X11), a software dimmer, and hardware brightness control over DDC/CI and sysfs backlight. Runs in the system tray."
+assets = [
+  ["target/release/ScreenTint", "usr/bin/screentint", "755"],
+  ["packaging/linux/screentint.desktop", "usr/share/applications/screentint.desktop", "644"],
+  ["assets/icon.png", "usr/share/icons/hicolor/512x512/apps/screentint.png", "644"],
+  ["LICENSE", "usr/share/doc/screentint/copyright", "644"],
+]
