@@ -265,6 +265,8 @@ export component Panel inherits Window {
     height: col.preferred-height + 16px;
     no-frame: true;
     always-on-top: true;
+    icon: @image-url("../assets/icon.png");
+    title: "ScreenTint";
     background: transparent;
     default-font-family: "Inter";
     default-font-size: 13px;
@@ -284,6 +286,14 @@ export component Panel inherits Window {
             // header
             HorizontalLayout {
                 spacing: 10px;
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("../assets/logo.svg");
+                        width: 34px;
+                        height: 34px;
+                    }
+                }
                 VerticalLayout {
                     alignment: center;
                     spacing: 2px;

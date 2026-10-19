@@ -101,24 +101,21 @@ fn status_text(s: &Settings) -> String {
 }
 
 fn make_icon(s: &Settings) -> slint::Image {
-    const N: u32 = 32;
+    // The logo's moon (a disc with a bite taken out), tinted with the current colour.
+    const N: u32 = 64;
     let on = s.active();
     let c = s.tint_color().map(|v| (v.clamp(0.0, 1.0) * 255.0) as u8);
+    let (r, g, b, base) = if on { (c[0], c[1], c[2], 1.0) } else { (0x8b, 0x92, 0xa1, 0.55) };
     let mut buf = SharedPixelBuffer::<Rgba8Pixel>::new(N, N);
     let px = buf.make_mut_slice();
+    let half = N as f32 / 2.0;
     for y in 0..N {
         for x in 0..N {
-            let dx = x as f32 + 0.5 - 16.0;
-            let dy = y as f32 + 0.5 - 16.0;
-            let d = (dx * dx + dy * dy).sqrt();
-            let cover = (15.0 - d).clamp(0.0, 1.0);
-            let (r, g, b, a) = if d > 12.0 {
-                (235, 235, 235, cover)
-            } else if on {
-                (c[0], c[1], c[2], cover)
-            } else {
-                (110, 110, 110, cover * 0.5)
-            };
+            let (fx, fy) = (x as f32 + 0.5 - half, y as f32 + 0.5 - half);
+            let disc = (27.0 - (fx * fx + fy * fy).sqrt()).clamp(0.0, 1.0);
+            let (bx, by) = (fx - 15.0, fy + 11.5);
+            let bite = (21.0 - (bx * bx + by * by).sqrt()).clamp(0.0, 1.0);
+            let a = disc * (1.0 - bite) * base;
             px[(y * N + x) as usize] = Rgba8Pixel { r, g, b, a: (a * 255.0) as u8 };
         }
     }
