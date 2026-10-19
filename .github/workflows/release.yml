@@ -52,7 +52,7 @@ jobs:
       - name: Package .app and .dmg
         run: |
           VERSION="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
-          packaging/macos/build-dmg.sh "$VERSION"
+          bash packaging/macos/build-dmg.sh "$VERSION"
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -82,6 +82,7 @@ jobs:
           cp target/release/ScreenTint "$stage/screentint"
           cp packaging/linux/screentint.desktop packaging/linux/install.sh "$stage/"
           cp assets/icon.png "$stage/screentint.png"
+          chmod +x "$stage/install.sh"
           cp LICENSE "$stage/"
           tar -czf "dist/${stage}.tar.gz" "$stage"
       - uses: actions/upload-artifact@v4
