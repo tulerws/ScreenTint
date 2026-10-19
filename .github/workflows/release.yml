@@ -108,6 +108,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          (cd dist && sha256sum * > SHA256SUMS.txt)
           ls -l dist
           gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" \
             --notes "Binaries are unsigned. See the README for installation and first-run notes."
